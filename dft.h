@@ -6,6 +6,6 @@
 
 #define BUFFER 2048
 
-double _Complex *dft(const double _Complex *, const uint32_t);
+double _Complex *dft(double _Complex*, const double _Complex *, const uint32_t);
 
 #endif // !

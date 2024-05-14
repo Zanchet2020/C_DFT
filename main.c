@@ -10,13 +10,13 @@ int main(int argc, char *argv[]) {
   uint32_t N = 2024;
 
   double complex *input = malloc(N * sizeof(double complex));
-  double complex *output = NULL;
+  double complex *output = malloc(N * sizeof(double complex));
 
   for (uint32_t i = 0; i < N; ++i) {
     input[i] = CMPLX(cos(3 * 2 * M_PI * i / (double)N), 0);
   }
 
-  output = dft(input, N);
+  dft(output, input, N);
   int span = 2024 / 120;
   for (uint32_t i = 0; i < 120; ++i) {
     double complex avg = CMPLX(0,0);

@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
   getmaxyx(stdscr, lines, columns);
 
   double complex *input = malloc(N * sizeof(double complex));
-  double complex *output = NULL;
+  double complex *output = malloc(N * sizeof(double complex));
 
   // for (uint32_t i = 0; i < N; ++i) {
   //   input[i] = CMPLX(cos(1000 * 2 * M_PI * i / (double)N) +
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
       // input[i] = CMPLX(cos(100 * ((double)i/(double)N) * PI),0);
       input[i] = CMPLX((audio_channels[start_frame + i][0] + audio_channels[start_frame + i][1])/2.0f, 0);
     }
-    output = dft(input, N);
+    dft(output, input, N);
     getmaxyx(stdscr, lines, columns);
     box(stdscr, 0, 0);
     uint32_t span = N / (2 * (columns));
@@ -69,7 +69,6 @@ int main(int argc, char *argv[]) {
           mvaddch(j, i, ' ');
       }
     }
-    free(output);
     refresh();
     //    usleep(1);
   }
@@ -86,6 +85,7 @@ int main(int argc, char *argv[]) {
   // }
   UnloadWave(audio);
   free(input);
+  free(output);
 
   return 0;
 }

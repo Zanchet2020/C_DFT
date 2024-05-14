@@ -1,9 +1,10 @@
 LDLIBS += -lm
 NCURSES += -lncurses
+RAYLIB += -lraylib
 WARNS := -Wall
 
-example_gui: example_gui.c dft.o
-	gcc example_gui.c dft.o $(WARNS) $(LDLIBS) $(NCURSES) -o example_gui
+dft: example_gui.c dft.o
+	gcc example_gui.c dft.o $(WARNS) $(LDLIBS) $(NCURSES) $(RAYLIB) -o dft
 
 main: main.o dft.o
 	gcc main.o dft.o $(WARNS) $(LDLIBS) -o main

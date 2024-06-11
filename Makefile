@@ -7,7 +7,7 @@ dft: example_gui.c dft.o
 	gcc example_gui.c dft.o $(WARNS) $(LDLIBS) $(NCURSES) $(RAYLIB) -o dft
 
 main: main.o dft.o
-	gcc main.o dft.o $(WARNS) $(LDLIBS) -o main
+	gcc main.o dft.o $(WARNS) $(LDLIBS) $(NCURSES) -o main
 
 main.o: main.c dft.o 
 	gcc -c $(WARNS) main.c

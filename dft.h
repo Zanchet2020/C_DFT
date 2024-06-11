@@ -4,7 +4,7 @@
 #include <complex.h>
 #include <stdint.h>
 
-#define BUFFER 2048
+#define BUFFER_SIZE 2048
 
 double _Complex *dft(double _Complex*, const double _Complex *, const uint32_t);
 

@@ -3,7 +3,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-double complex *dft(double complex *output, const double complex *input, const uint32_t K) {
+double complex *dft(double complex *output, const double complex *input, uint32_t K) {
+  K = 250;
   const uint32_t N = K;
   // double complex *output = malloc(K * sizeof(double complex));
   const double complex constant_value = (-I * 2.0 * M_PI) / N;

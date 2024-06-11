@@ -8,10 +8,27 @@
 #include <string.h>
 #include <sys/stat.h>
 
-int main(int argc, char *argv[]) {
-  uint32_t N = BUFFER;
-  int lines = 0, columns = 0;
+#define IO_BUFFER_SIZE BUFFER_SIZE*4
 
+double complex *input = NULL;
+double complex *output = NULL;
+
+uint32_t frames_received = 0;
+
+void musicCallback(void *bufferData, unsigned int frames){
+  frames_received = frames;
+  for(uint32_t i = 0; i < IO_BUFFER_SIZE; ++i) output[i]=0; /* Zeroing the output buffer */
+  float (*audio_channels)[2] = bufferData;
+  for (uint32_t i = 0; i < frames; ++i) {
+    input[i] = CMPLX((audio_channels[i][0] + audio_channels[i][1])/2.0f, 0);
+  }
+  dft(output, input, frames_received);
+}
+
+
+
+int main(int argc, char *argv[]) {
+  int lines = 0, columns = 0;
   if(argc < 2) {
     printf("ERROR: Provide an audio file\n");
     return -1;
@@ -19,71 +36,73 @@ int main(int argc, char *argv[]) {
     printf("ERROR: Unkown args\n");
     return -1;
   }
+  
+  // INITIALIZING RAYAUDIO
+  InitAudioDevice();
 
+  SetAudioStreamBufferSizeDefault(IO_BUFFER_SIZE);
+  Music music = LoadMusicStream(argv[1]);
+  SetAudioStreamVolume(music.stream, 1.0f);
+  AttachAudioStreamProcessor(music.stream, musicCallback);
+  PlayMusicStream(music);
+
+  // INITIALIZING NCURSES
   initscr();
   nodelay(stdscr, TRUE);
   start_color();
+  curs_set(FALSE);
   getmaxyx(stdscr, lines, columns);
-
-  double complex *input = malloc(N * sizeof(double complex));
-  double complex *output = malloc(N * sizeof(double complex));
-
-  // for (uint32_t i = 0; i < N; ++i) {
-  //   input[i] = CMPLX(cos(1000 * 2 * M_PI * i / (double)N) +
-  //                        sin(40 * 2 * M_PI * i / (double)N),
-  //                    0);
-  // }
-
-  // getch();
-  // resize_term(lines + 2, columns + 2);
-  Wave audio = LoadWave(argv[1]);
-  // uint64_t rawSize = audio.frameCount * (audio.sampleSize / 8) * audio.channels;
-  float (*audio_channels)[2] = audio.data;
-
   init_pair(1, COLOR_RED, COLOR_BLACK);
   attron(COLOR_PAIR(1));
 
+  input = malloc(IO_BUFFER_SIZE * sizeof(double complex));
+  output = malloc(IO_BUFFER_SIZE * sizeof(double complex));
+  double *final_vector = calloc(sizeof(double), IO_BUFFER_SIZE/2);
+  
   box(stdscr, 0, 0);
-  for (size_t start_frame = 0; start_frame < audio.frameCount; start_frame += N) {
-    if (getch() == 'q')
-      break;
-    for (uint32_t i = 0; i < N; ++i) {
-      // input[i] = CMPLX(cos(100 * ((double)i/(double)N) * PI),0);
-      input[i] = CMPLX((audio_channels[start_frame + i][0] + audio_channels[start_frame + i][1])/2.0f, 0);
-    }
-    dft(output, input, N);
+  while(getch() != 'q'){
+    UpdateMusicStream(music);
     getmaxyx(stdscr, lines, columns);
     box(stdscr, 0, 0);
-    uint32_t span = N / (2 * (columns));
+
+    // Calculating velocity and updating final_vector
+    for(size_t i = 0; i < IO_BUFFER_SIZE/2; ++i){
+      double speed = cabs(output[i])*2 - final_vector[i];
+      final_vector[i] += speed * 1.0f;
+    }
+    
 
     for (uint32_t i = 1; i < columns - 1; ++i) {
+      uint32_t span = ((double)frames_received) / ((double)columns);
+      mvprintw(4,5, "div: %.4f", ((double)frames_received) / ((double)columns));
       double avg = 0;
+      if(2*i*span > IO_BUFFER_SIZE) continue;
       for (int j = 0; j < span; j++) {
-        avg += cabs(output[i * span + j]);
+        avg += final_vector[i*span + j]; //cabs(output[i * span + j]);
       }
-      avg /= span;
+      avg /= (double)span;
+      avg *= 1*cexp(i/4000.0);
+      //avg = log((double)i) * avg;
       for (uint32_t j = 1; j < lines - 1; j++) {
-        if (j >= lines - 250 * avg && j < lines - 1)
-          mvaddch(j, i, '*');
+        if (j >= lines - 500 * avg && j < lines - 1){
+	  //int a = L'\u2588';
+          mvaddch(j, i, '|');
+	}
         else
           mvaddch(j, i, ' ');
       }
+      mvprintw(1,5,"span: %d", span);
     }
+    mvprintw(2,5, "frames_received: %d", frames_received);
+    mvprintw(3,5, "columns: %d", columns);
     refresh();
-    //    usleep(1);
+    usleep(50);
   }
+
   endwin();
-
-  // for (int i = 0; i < columns - 1; ++i) {
-  //   double complex avg = 0;
-  //   for (int j = 0; j < span; j++){
-  //     avg += output[i*span + j];
-  //   }
-
-  //   for(int j = lines - 2 - 5 * cabs(avg); j <= lines - 2; j++) mvaddch(j, i,
-  //   '*');
-  // }
-  UnloadWave(audio);
+  DetachAudioStreamProcessor(music.stream, musicCallback);
+  UnloadMusicStream(music);
+  CloseAudioDevice();
   free(input);
   free(output);
 
